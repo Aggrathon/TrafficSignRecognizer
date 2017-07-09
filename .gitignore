@@ -1,5 +1,10 @@
+# Python
 env/
 __pycahce__
 *.whl
 *.pyc
 
+# Own
+data/*
+!data/*.py
+.vscode/
