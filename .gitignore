@@ -8,3 +8,4 @@ __pycahce__
 data/*
 !data/*.py
 .vscode/
+network/
