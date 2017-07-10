@@ -5,7 +5,7 @@ import pygame
 
 SOURCE_DIR = 'frames'
 NONE_DIR = 'none'
-POTENTIAL_DIR = 'unsorted'
+POTENTIAL_DIR = 'signs'
 
 def main():
     os.makedirs(NONE_DIR, exist_ok=True)
