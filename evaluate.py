@@ -1,4 +1,7 @@
 from model import network, input_fn
 
+res = network().evaluate(input_fn, 10)
 print()
-print(network().evaluate(input_fn, 1))
+for key in res:
+    print(key+':', res[key])
+
