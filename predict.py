@@ -1,9 +1,51 @@
-from model import network, randomize_pictures
+from model import network, randomize_pictures, model_fn
 import tensorflow as tf
 import os
 
 
-def input_fn():
+class PredictionStats():
+    def __init__(self):
+        self.true_negative = 0
+        self.false_positive = 0
+        self.false_negative = 0
+        self.true_positive = 0
+   
+    def get_accuracy(self):
+        right = float(self.true_positive+self.false_negative)
+        wrong = float(self.true_negative+self.false_positive)
+        return right / (right+wrong)
+
+    def add_prediction(self, pred, label):
+        if label < 0.5:
+            if pred < 0.5:
+                self.true_negative += 1
+            else:
+                self.false_positive += 1
+        else:
+            if pred > 0.5:
+                self.true_positive += 1
+            else:
+                self.false_negative += 1
+
+    def add_predictions(self, preds, labels):
+        for p, l in zip(preds, labels):
+            self.add_prediction(p, l)
+
+    def print_result(self):
+        print('__ No Signs __')
+        print('True Negative:', self.true_negative)
+        print('False Positive:', self.false_positive)
+        print('Accuracy:', float(self.true_negative)/(self.true_negative+self.false_positive))
+        print('__ Has Signs __')
+        print('True Positive:', self.true_positive)
+        print('False Negative:', self.false_negative)
+        print('Accuracy:', float(self.true_positive)/(self.true_positive+self.false_negative))
+        print('__ Overall __')
+        print('Predictions:', (self.true_negative+self.true_positive+self.false_negative+self.false_positive))
+        print('Accuracy:', self.get_accuracy())
+
+
+def inputs():
     with tf.variable_scope('input'):
         image_reader = tf.WholeFileReader()
         crop_size = 60
@@ -18,39 +60,35 @@ def input_fn():
         images = [ni, si]
         images = randomize_pictures(images)
         images = tf.reshape(tf.to_float(images)/255.0, [2, crop_size, crop_size, 3])
-    return dict(input=tf.train.batch([images], 1, 1, 80, enqueue_many=True))
+    inp, label = tf.train.batch([images, [0, 1]], 1, 1, 80, enqueue_many=True)
+    return dict(input=inp), label
 
 def main():
     tf.logging.set_verbosity(tf.logging.INFO)
-    nn = network()
-    true_negative = 0
-    false_positive = 0
-    false_negative = 0
-    true_positive = 0
+    inp, label = inputs()
+    nn = model_fn(inp, None, tf.estimator.ModeKeys.PREDICT)
+    stats = PredictionStats()
+    sess = tf.Session()
+    sess.run(tf.local_variables_initializer())
+    sess.run(tf.global_variables_initializer())
+    saver = tf.train.Saver()
+    ckpt = tf.train.get_checkpoint_state('network')
+    saver.restore(sess, ckpt.model_checkpoint_path)
+    coord = tf.train.Coordinator()
+    tf.train.start_queue_runners(sess, coord)
     try:
-        sign = False
-        for r in nn.predict(input_fn):
-            pred = r['predictions'][0]
-            print('Prediction:', pred, '\t', r['logits'][0])
-            if sign:
-                if pred < 0.5:
-                    true_negative += 1
-                else:
-                    false_positive += 1
-                sign = False
-            else:
-                if pred > 0.5:
-                    true_positive += 1
-                else:
-                    false_negative += 1
-                sign = True
+        while True:
+            pred, logits, act = sess.run([nn.predictions['predictions'], nn.predictions['logits'], label])
+            stats.add_prediction(pred, act)
+            print('Prediction:\t%.2f\t%.2f'%(pred, logits))
     except KeyboardInterrupt:
         pass
+    finally:
+        coord.request_stop()
+        coord.join()
+        sess.close()
     print()
-    print('Correct No Signs:', true_negative)
-    print('False Positive:', false_positive)
-    print('Correct With Signs:', true_positive)
-    print('False Negative:', false_negative)
+    stats.print_result()
 
 
 if __name__ == "__main__":

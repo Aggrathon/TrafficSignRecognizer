@@ -9,8 +9,8 @@ def model_fn(features, labels, mode):
         with tf.variable_scope('convolution_%d'%i):
             prev_layer = tf.layers.conv2d(prev_layer, size, [5, 5], [1, 1], 'valid', activation=tf.nn.relu)
             prev_layer = tf.layers.max_pooling2d(prev_layer, (2, 2), (1, 1), 'valid')
-            if i == 1:
-                prev_layer = tf.layers.batch_normalization(prev_layer, training=training)
+            #if i == 1:
+            #    prev_layer = tf.layers.batch_normalization(prev_layer, training=training)
     prev_layer = tf.contrib.layers.flatten(prev_layer, )
     for i, size in enumerate([1024, 128]):
         with tf.variable_scope('fully_connected_%d'%i):
@@ -60,7 +60,7 @@ def network():
     return tf.estimator.Estimator(model_fn, 'network', config)
 
 def input_fn():
-    with tf.variable_scope('input'):
+    with tf.variable_scope('training_input'):
         image_reader = tf.WholeFileReader()
         crop_size = 60
         #no signs
