@@ -1,10 +1,11 @@
-# Python
+### Python ###
 env/
 __pycahce__
 *.whl
 *.pyc
 
-# Own
+
+### Own ###
 data/*
 !data/*.py
 .vscode/

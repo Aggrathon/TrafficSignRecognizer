@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="320"
+   height="320"
+   viewBox="0 0 320 320"
+   version="1.1"
+   id="svg8"
+   inkscape:version="0.92.1 r15371"
+   sodipodi:docname="sign_icon.svg"
+   inkscape:export-filename="D:\Anton\Data\Programmering\TrafficSignRecognizer\android\resources\bitmap.png"
+   inkscape:export-xdpi="153.60001"
+   inkscape:export-ydpi="153.60001">
+  <defs
+     id="defs2" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="1.979899"
+     inkscape:cx="178.19876"
+     inkscape:cy="158.39805"
+     inkscape:document-units="px"
+     inkscape:current-layer="svg8"
+     showgrid="false"
+     units="px"
+     inkscape:pagecheckerboard="true"
+     inkscape:window-width="1858"
+     inkscape:window-height="1057"
+     inkscape:window-x="1734"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1" />
+  <metadata
+     id="metadata5">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <path
+     style="display:none;opacity:1;fill:#f6f6f6;fill-opacity:1;fill-rule:evenodd;stroke:#f5f5f5;stroke-width:40;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:30.23622131;stroke-opacity:1"
+     d="M 5,5 H 315 V 315 H 5 Z"
+     id="rect4545"
+     inkscape:connector-curvature="0"
+     inkscape:label="bg" />
+  <g
+     inkscape:label="Signs"
+     id="g4744"
+     style="display:inline;fill:#333333;fill-opacity:1;stroke:#333333;stroke-opacity:1"
+     transform="translate(0,-1.2)">
+    <g
+       id="g4730"
+       inkscape:label="Diamond Sign"
+       transform="translate(30.008711,-7.556642)"
+       style="fill:#333333;fill-opacity:1;stroke:#333333;stroke-opacity:1">
+      <rect
+         inkscape:label="Pole"
+         y="83.199615"
+         x="124.10528"
+         height="184"
+         width="8"
+         id="rect4726"
+         style="opacity:1;fill:#333333;fill-opacity:1;fill-rule:evenodd;stroke:#333333;stroke-width:16;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:30.23622131;stroke-opacity:1" />
+      <rect
+         inkscape:label="Diamond"
+         transform="matrix(0.70712037,0.70709319,-0.70712037,0.70709319,0,0)"
+         y="-73.756935"
+         x="107.40781"
+         height="88"
+         width="88"
+         id="rect4728"
+         style="opacity:1;fill:#333333;fill-opacity:1;fill-rule:evenodd;stroke:#333333;stroke-width:15.99999905;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:30.23622131;stroke-opacity:1" />
+    </g>
+    <g
+       id="g4736"
+       inkscape:label="Circle Sign"
+       transform="matrix(1,0,0,0.99999488,127.54492,78.02116)"
+       style="fill:#333333;fill-opacity:1;stroke:#333333;stroke-width:1.00000262;stroke-opacity:1">
+      <circle
+         inkscape:label="Circle"
+         cy="76"
+         cx="128"
+         id="circle4732"
+         style="display:inline;opacity:1;fill:#333333;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:1.00157726;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:30.23622131;stroke-opacity:1"
+         r="60" />
+      <rect
+         style="opacity:1;fill:#333333;fill-opacity:1;fill-rule:evenodd;stroke:#333333;stroke-width:16.00004005;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:30.23622131;stroke-opacity:1"
+         id="rect4734"
+         width="7.9999599"
+         height="184"
+         x="123.9997"
+         y="41.500004"
+         inkscape:label="Pole" />
+    </g>
+    <g
+       id="g4742"
+       inkscape:label="Triangle Sign"
+       transform="translate(-54.990101,67.52)"
+       style="fill:#333333;fill-opacity:1;stroke:#333333;stroke-opacity:1">
+      <path
+         inkscape:label="Triangle"
+         sodipodi:nodetypes="cccc"
+         inkscape:connector-curvature="0"
+         id="path4738"
+         d="M 128.00053,24.152633 186.00064,119.6429 H 70.00041 Z"
+         style="display:inline;opacity:1;fill:#333333;fill-opacity:1;fill-rule:evenodd;stroke:#333333;stroke-width:16;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:30.23622131;stroke-opacity:1" />
+      <rect
+         style="opacity:1;fill:#333333;fill-opacity:1;fill-rule:evenodd;stroke:#333333;stroke-width:16;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:30.23622131;stroke-opacity:1"
+         id="rect4740"
+         width="8"
+         height="184"
+         x="124"
+         y="52"
+         inkscape:label="Pole" />
+    </g>
+  </g>
+</svg>
