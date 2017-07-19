@@ -2,6 +2,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
           package="aggrathon.trafficsignrecognizer">
 
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="true" />
+
+    <uses-sdk android:minSdkVersion="21" />
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/launcher_icon"
