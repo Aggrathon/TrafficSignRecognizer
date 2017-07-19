@@ -80,7 +80,7 @@ def input_fn():
         #batch
         images = tf.concat((si, ni), 0)
         labels = [[1]]*4+[[0]]*4
-        images, labels = tf.train.shuffle_batch([images, labels], 16, 800, 100, 4, enqueue_many=True)
+        images, labels = tf.train.shuffle_batch([images, labels], 32, 1000, 100, 4, enqueue_many=True)
         return dict(input=images), dict(labels=labels)
 
 def randomize_pictures(tensors):
