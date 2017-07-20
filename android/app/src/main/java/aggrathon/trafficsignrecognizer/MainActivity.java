@@ -31,14 +31,14 @@ public class MainActivity extends AppCompatActivity {
 
 	protected void startThread() {
 		if (thread != null)
-			thread.stopThread();
-		thread = new ImageThread((ImageView)findViewById(R.id.imageView));
+			thread.stop();
+		thread = new ImageThread((ImageView)findViewById(R.id.imageView), this);
 	}
 
 	@Override
 	protected void onPause() {
 		if (thread != null) {
-			thread.stopThread();
+			thread.stop();
 			thread = null;
 		}
 		super.onPause();
