@@ -35,6 +35,7 @@ public class ImageThread {
 
 	private ImageView imageView;
 	private AppCompatActivity activity;
+	private ImageProcessor processor;
 	private CameraManager manager;
 	private HandlerThread thread;
 	private Handler handler;
@@ -47,6 +48,7 @@ public class ImageThread {
 		shouldStop = false;
 		this.imageView = imageView;
 		this.activity = activity;
+		processor = new ImageProcessor();
 		manager = (CameraManager) activity.getSystemService(Context.CAMERA_SERVICE);
 		start();
 	}
@@ -87,6 +89,8 @@ public class ImageThread {
 			});
 		}
 
+		processor.stop();
+
 		if(thread != null) {
 			handler = null;
 			HandlerThread t = thread;
@@ -108,6 +112,12 @@ public class ImageThread {
 		thread = new HandlerThread("ImageManager");
 		thread.start();
 		handler = new Handler(thread.getLooper());
+		handler.post(new Runnable() {
+			@Override
+			public void run() {
+				processor.start();
+			}
+		});
 		//TODO hide reconnect button
 
 		try {
@@ -226,24 +236,26 @@ public class ImageThread {
 					img.close();
 					if(shouldStop)
 						return;
-					if(bmp != null)
-						bmp.recycle();
-					bmp = BitmapFactory.decodeByteArray(bb, 0, bb.length);
-					//!!!
-					//TODO Proccess images
-					//!!!
-					activity.runOnUiThread(new Runnable() {
-						@Override
-						public void run() {
-							imageView.setImageBitmap(bmp);
-						}
-					});
+					Bitmap tmp = processor.process(bb);
+					if(shouldStop)
+						return;
+					if (tmp != null) {
+						if(bmp != null)
+							bmp.recycle();
+						bmp = tmp;
+						activity.runOnUiThread(new Runnable() {
+							@Override
+							public void run() {
+								imageView.setImageBitmap(bmp);
+							}
+						});
+					}
 					//Run interval is IMAGE_MIN_INTERVAL/1000 s
 					long delay = prevTime + IMAGE_MIN_INTERVAL - System.currentTimeMillis();
 					prevTime = System.currentTimeMillis();
 					if (delay < 0)
 						delay = 0;
-					handler.postDelayed(new Runnable() {
+					if (handler != null) handler.postDelayed(new Runnable() {
 						@Override
 						public void run() {
 							try {
