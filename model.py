@@ -7,8 +7,8 @@ def model_fn(features, labels, mode):
     prev_layer = features['input']
     for i, size in enumerate([32, 48, 64]):
         with tf.variable_scope('convolution_%d'%i):
-            prev_layer = tf.layers.conv2d(prev_layer, size, [5, 5], [1, 1], 'valid', activation=tf.nn.relu)
-            prev_layer = tf.layers.max_pooling2d(prev_layer, (2, 2), (1, 1), 'valid')
+            prev_layer = tf.layers.conv2d(prev_layer, size, 5, 1, 'valid', activation=tf.nn.relu)
+            prev_layer = tf.layers.max_pooling2d(prev_layer, 2, 2, 'valid')
             #if i == 1:
             #    prev_layer = tf.layers.batch_normalization(prev_layer, training=training)
     prev_layer = tf.contrib.layers.flatten(prev_layer, )
