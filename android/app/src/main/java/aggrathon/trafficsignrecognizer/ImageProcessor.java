@@ -10,13 +10,13 @@ import org.tensorflow.contrib.android.TensorFlowInferenceInterface;
 
 public class ImageProcessor {
 
-	protected static final String MODEL_ASSET_PATH = "saved_model.pb";
+	protected static final String MODEL_ASSET_PATH = "model.pb";
 	protected static final int NUM_RECOGNITION_SAMPLES_X = 6;
 	protected static final int NUM_RECOGNITION_SAMPLES_Y = 5;
 
 	TensorFlowInferenceInterface tf;
 	float[] output = new float[NUM_RECOGNITION_SAMPLES_X*NUM_RECOGNITION_SAMPLES_Y];
-	char buffer[][][][];
+	byte buffer[];
 
 	private boolean initialized;
 
@@ -38,22 +38,30 @@ public class ImageProcessor {
 		if(!initialized)
 			return null;
 		Bitmap bmp = BitmapFactory.decodeByteArray(jpegArray, 0, jpegArray.length);
-		if (buffer == null || buffer[0][0][0].length != 3 || buffer[0].length != bmp.getHeight() || buffer[0][0].length != bmp.getWidth()) {
-			buffer = new char[1][bmp.getHeight()][bmp.getWidth()][3];
+		int targetWidth = bmp.getHeight()*320/240;
+		int targetHeight = bmp.getHeight();
+		if (targetWidth > bmp.getWidth()) {
+			targetWidth = bmp.getWidth();
+			targetHeight = bmp.getWidth()*240/320;
 		}
-		for(int x = 0; x < bmp.getWidth(); x++) {
-			for (int y = 0; y < bmp.getHeight(); y++) {
-				int p = bmp.getPixel(x, y);
-				buffer[0][y][x][0] = (char)Color.red(p);
-				buffer[0][y][x][1] = (char)Color.green(p);
-				buffer[0][y][x][2] = (char)Color.blue(p);
+		Bitmap bmp1 = Bitmap.createBitmap(bmp, (bmp.getWidth()-targetWidth)/2, (bmp.getHeight()-targetHeight)/2, targetWidth, targetHeight);
+		Bitmap bmp2 = Bitmap.createScaledBitmap(bmp1, 320, 240, true);
+		if (buffer == null) {
+			buffer = new byte[3 * 240 * 320];
+		}
+		for(int x = 0; x < 320; x++) {
+			for (int y = 0; y < 240; y++) {
+				int p = bmp2.getPixel(x, y);
+				buffer[y*320*3 + x*3 + 0] = (byte)Color.red(p);
+				buffer[y*320*3 + x*3 + 1] = (byte)Color.green(p);
+				buffer[y*320*3 + x*3 + 2] = (byte)Color.blue(p);
 			}
 		}
+		bmp2.recycle();
 
-
-		tf.feed("input:0", bmp., 1, bmp.getHeight(), bmp.getWidth(), 3);
+		tf.feed("input:0", buffer, (long)(320*240*3));
 		tf.run(new String[] {"predictions:0"}, true);
-		tf.fetch("predictions", output);
+		tf.fetch("predictions:0", output);
 		boolean pred = false;
 		for(int i = 0; i < output.length; i++) {
 			if (output[0] > 0.5f) {
@@ -64,6 +72,7 @@ public class ImageProcessor {
 
 		if (!pred) {
 			bmp.recycle();
+			bmp1.recycle();
 			return null;
 		}
 		//!!!
@@ -72,6 +81,6 @@ public class ImageProcessor {
 		//if no signs return null
 		//else return sign area
 		//maybe fill screen (needs imageView aspect)
-		return bmp;
+		return bmp1;
 	}
 }

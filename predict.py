@@ -11,8 +11,8 @@ class PredictionStats():
         self.true_positive = 0
    
     def get_accuracy(self):
-        right = float(self.true_positive+self.false_negative)
-        wrong = float(self.true_negative+self.false_positive)
+        right = float(self.true_positive+self.true_negative)
+        wrong = float(self.false_negative+self.false_positive)
         return right / (right+wrong)
 
     def add_prediction(self, pred, label):
@@ -32,14 +32,17 @@ class PredictionStats():
             self.add_prediction(p, l)
 
     def print_result(self):
+        print()
         print('__ No Signs __')
         print('True Negative:', self.true_negative)
         print('False Positive:', self.false_positive)
         print('Accuracy:', float(self.true_negative)/(self.true_negative+self.false_positive))
+        print()
         print('__ Has Signs __')
         print('True Positive:', self.true_positive)
         print('False Negative:', self.false_negative)
         print('Accuracy:', float(self.true_positive)/(self.true_positive+self.false_negative))
+        print()
         print('__ Overall __')
         print('Predictions:', (self.true_negative+self.true_positive+self.false_negative+self.false_positive))
         print('Accuracy:', self.get_accuracy())
@@ -63,17 +66,21 @@ def inputs():
     inp, label = tf.train.batch([images, [0, 1]], 1, 1, 80, enqueue_many=True)
     return dict(input=inp), label
 
-def main():
-    tf.logging.set_verbosity(tf.logging.INFO)
-    inp, label = inputs()
-    nn = model_fn(inp, None, tf.estimator.ModeKeys.PREDICT)
-    stats = PredictionStats()
+def get_session():
     sess = tf.Session()
     sess.run(tf.local_variables_initializer())
     sess.run(tf.global_variables_initializer())
     saver = tf.train.Saver()
     ckpt = tf.train.get_checkpoint_state('network')
     saver.restore(sess, ckpt.model_checkpoint_path)
+    return sess
+
+def main():
+    tf.logging.set_verbosity(tf.logging.INFO)
+    inp, label = inputs()
+    nn = model_fn(inp, None, tf.estimator.ModeKeys.PREDICT)
+    stats = PredictionStats()
+    sess = get_session()
     coord = tf.train.Coordinator()
     tf.train.start_queue_runners(sess, coord)
     try:
