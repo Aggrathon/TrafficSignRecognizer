@@ -115,7 +115,7 @@ public class ImageThread {
 		handler.post(new Runnable() {
 			@Override
 			public void run() {
-				processor.start();
+				processor.start(activity);
 			}
 		});
 		//TODO hide reconnect button
