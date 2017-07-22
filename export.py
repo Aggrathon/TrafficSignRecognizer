@@ -20,15 +20,9 @@ def export():
 
 def export2(vertical=5, horizontal=6):
     tf.logging.set_verbosity(tf.logging.INFO)
-    inp = tf.placeholder(tf.uint8, [320*240*3], name=INPUT_TENSOR_NAME)
-    inp = tf.reshape(inp, [240, 320, 3])
-    arr = []
-    for i in range(vertical):
-        for j in range(horizontal):
-            y = int((240.-60.)/(vertical-1)*i)
-            x = int((320.-60.)/(horizontal-1)*j)
-            arr.append(tf.image.crop_to_bounding_box(inp, y, x, 60, 60))
-    model_fn(dict(input=tf.to_float(arr)), None, tf.estimator.ModeKeys.PREDICT)
+    inp = tf.placeholder(tf.float32, [None], name=INPUT_TENSOR_NAME)
+    inp = tf.reshape(inp, [-1, 60, 60, 3])
+    model_fn(dict(input=inp), None, tf.estimator.ModeKeys.PREDICT)
     sess = get_session()
     tf.train.Saver().save(sess, os.path.join(EXPORT_FOLDER, 'checkpoint.ckpt'))
     tf.train.write_graph(sess.graph_def, EXPORT_FOLDER, 'graph.pbtxt', True)
@@ -55,7 +49,7 @@ def export2(vertical=5, horizontal=6):
         input_graph_def,
         ["input"],
         ["predictions"],
-        tf.uint8.as_datatype_enum
+        tf.float32.as_datatype_enum
     )
     with tf.gfile.FastGFile(os.path.join(EXPORT_FOLDER, 'model.pb'), 'w') as f:
         f.write(output_graph.SerializeToString())

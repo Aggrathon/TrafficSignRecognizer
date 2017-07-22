@@ -250,22 +250,12 @@ public class ImageThread {
 							}
 						});
 					}
-					//Run interval is IMAGE_MIN_INTERVAL/1000 s
-					long delay = prevTime + IMAGE_MIN_INTERVAL - System.currentTimeMillis();
-					prevTime = System.currentTimeMillis();
-					if (delay < 0)
-						delay = 0;
-					if (handler != null) handler.postDelayed(new Runnable() {
-						@Override
-						public void run() {
-							try {
-								cameraSession.capture(request, null, handler);
-							}
-							catch (CameraAccessException e) {
-								cameraDisconnectAccessException();
-							}
-						}
-					}, delay);
+					try {
+						cameraSession.capture(request, null, handler);
+					}
+					catch (CameraAccessException e) {
+						cameraDisconnectAccessException();
+					}
 				}
 			}, handler);
 			cameraSession.capture(request, null, handler);
