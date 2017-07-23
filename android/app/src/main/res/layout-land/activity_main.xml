@@ -5,36 +5,36 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="aggrathon.trafficsignrecognizer.MainActivity"
-    android:orientation="vertical">
+    android:orientation="horizontal"
+    tools:context="aggrathon.trafficsignrecognizer.MainActivity">
 
     <ImageView
         android:id="@+id/imageView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:layout_weight="1"
         android:scaleType="centerInside"
-        app:srcCompat="@drawable/sign_icon"
-        android:layout_weight="1"/>
+        app:srcCompat="@drawable/sign_icon"/>
 
     <LinearLayout
+        style="@style/AppTheme.ImagePanel"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_weight="3"
-        android:orientation="horizontal"
-        style="@style/AppTheme.ImagePanel">
+        android:layout_weight="2"
+        android:orientation="vertical">
 
         <SurfaceView
             android:id="@+id/liveView"
+            style="@style/AppTheme.SmallImage"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_weight="1"
-            style="@style/AppTheme.SmallImage"/>
+            android:layout_weight="1"/>
 
         <ImageView
             android:id="@+id/prevImage"
+            style="@style/AppTheme.SmallImage"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_weight="1"
-            style="@style/AppTheme.SmallImage"/>
+            android:layout_weight="1"/>
     </LinearLayout>
 </LinearLayout>
