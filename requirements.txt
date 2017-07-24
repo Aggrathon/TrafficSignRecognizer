@@ -1,4 +1,3 @@
 tensorflow
 numpy
-Pillow
-pygame
+pygame # Used for manually classifying training data 

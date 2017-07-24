@@ -8,7 +8,12 @@ from model import network, input_fn, model_fn
 from predict import PredictionStats, get_session
 
 EXPORT_FOLDER = os.path.join('network', 'export')
+EXPORTED_NUMPY_DATA = os.path.join(EXPORT_FOLDER, 'data.npy')
 INPUT_TENSOR_NAME = 'input'
+OUTPUT_TENSOR_NAME = 'predictions'
+EXPORTED_MODEL_NAME = os.path.join(EXPORT_FOLDER, 'model.pb')
+EXPORTED_MODEL_ANDROID = os.path.join('android', 'app', 'src', 'main', 'assets', 'model.pb')
+
 
 def export():
     tf.logging.set_verbosity(tf.logging.INFO)
@@ -18,7 +23,7 @@ def export():
         EXPORT_FOLDER,
         tf.estimator.export.build_raw_serving_input_receiver_fn(td))
 
-def export2(vertical=5, horizontal=6):
+def export2(vertical=5, horizontal=6, move=False):
     tf.logging.set_verbosity(tf.logging.INFO)
     inp = tf.placeholder(tf.float32, [None], name=INPUT_TENSOR_NAME)
     inp = tf.reshape(inp, [-1, 60, 60, 3])
@@ -35,7 +40,7 @@ def export2(vertical=5, horizontal=6):
         None,
         False,
         ckpt.model_checkpoint_path,
-        'predictions',
+        OUTPUT_TENSOR_NAME,
         'save/restore_all',
         'save/Const:0',
         os.path.join(EXPORT_FOLDER, 'fozen.pb'),
@@ -47,12 +52,18 @@ def export2(vertical=5, horizontal=6):
         input_graph_def.ParseFromString(f.read())
     output_graph = optimize_for_inference(
         input_graph_def,
-        ["input"],
-        ["predictions"],
+        [INPUT_TENSOR_NAME],
+        [OUTPUT_TENSOR_NAME],
         tf.float32.as_datatype_enum
     )
-    with tf.gfile.FastGFile(os.path.join(EXPORT_FOLDER, 'model.pb'), 'w') as f:
+    with tf.gfile.FastGFile(os.path.join(EXPORTED_MODEL_NAME, 'w') as f:
         f.write(output_graph.SerializeToString())
+    if move:
+        try:
+            os.remove(EXPORTED_MODEL_ANDROID)
+        except:
+            pass
+        os.rename(EXPORTED_MODEL_NAME, EXPORTED_MODEL_ANDROID)
 
 
 def data():
@@ -63,7 +74,7 @@ def data():
         coord = tf.train.Coordinator()
         tf.train.start_queue_runners(sess, coord)
         arr = sess.run(input)
-        np.save(os.path.join(EXPORT_FOLDER, 'data'), arr)
+        np.save(EXPORTED_NUMPY_DATA, arr)
         coord.request_stop()
         coord.join()
 
@@ -74,8 +85,8 @@ def predict():
     sess.run(tf.local_variables_initializer())
     sess.run(tf.global_variables_initializer())
     load = tf.saved_model.loader.load(sess, ['serve'], get_latest_export())
-    output_tensor = sess.graph.get_tensor_by_name('predictions:0')
-    arr = np.load('network/export/data.npy')
+    output_tensor = sess.graph.get_tensor_by_name(OUTPUT_TENSOR_NAME+':0')
+    arr = np.load(EXPORTED_NUMPY_DATA)
     pred = sess.run(output_tensor, {INPUT_TENSOR_NAME+':0': arr})
     for p in pred:
         print("Prediction: %.2f"%p)
@@ -95,7 +106,7 @@ def predict2():
     stats = PredictionStats()
     try:
         load = tf.saved_model.loader.load(sess, ['serve'], get_latest_export())
-        output_tensor = sess.graph.get_tensor_by_name('predictions:0')
+        output_tensor = sess.graph.get_tensor_by_name(OUTPUT_TENSOR_NAME+':0')
         print('Predicting images until Ctrl+C is pressed')
         while True:
             data, label = sess.run([input_tensor, label_tensor])
@@ -126,6 +137,7 @@ if __name__ == "__main__":
         print(' d  export a training tensor as data')
         print(' o  predict using the latest exported model and exported data')
         print(' r  export model for android')
+        print(' t  export model for android and move it to the app assets')
     elif sys.argv[1] == 'e':
         export()
     elif sys.argv[1] == 'p':
@@ -136,3 +148,5 @@ if __name__ == "__main__":
         predict()
     elif sys.argv[1] == 'r':
         export2()
+    elif sys.argv[1] == 't':
+        export2(move=True)

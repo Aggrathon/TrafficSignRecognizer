@@ -1,18 +1,15 @@
-#!/usr/bin/python3
 
 import os
-import pygame
 import uuid
+import pygame
+from config import SIGN_FRAMES_DIR, CROPPED_SIGNS_DIR, NO_SIGNS_FRAMES_DIR
 
-SOURCE_DIR = 'signs'
-NONE_DIR = 'none'
-CROP_DIR = 'cropped'
 RECT_SIZE = 100
 
 def main():
-    os.makedirs(NONE_DIR, exist_ok=True)
-    os.makedirs(CROP_DIR, exist_ok=True)
-    imgs = os.listdir(SOURCE_DIR)
+    os.makedirs(NO_SIGNS_FRAMES_DIR, exist_ok=True)
+    os.makedirs(CROPPED_SIGNS_DIR, exist_ok=True)
+    imgs = os.listdir(SIGN_FRAMES_DIR)
     imgs.sort(reverse=True)
     last = 0
     current = 0
@@ -29,14 +26,14 @@ def main():
             elif event.type == pygame.KEYUP:
                 if event.key == pygame.K_p:
                     for i in range(last, current):
-                        os.rename(os.path.join(SOURCE_DIR, imgs[i]), os.path.join(NONE_DIR, imgs[i]))
+                        os.rename(os.path.join(SIGN_FRAMES_DIR, imgs[i]), os.path.join(NO_SIGNS_FRAMES_DIR, imgs[i]))
                     last = current
                     current += 1
                 if event.key == pygame.K_BACKSPACE:
                     current -= 2
                     for i in range(current, last+1):
                         try:
-                            os.rename(os.path.join(NONE_DIR, imgs[i]), os.path.join(SOURCE_DIR, imgs[i]))
+                            os.rename(os.path.join(NO_SIGNS_FRAMES_DIR, imgs[i]), os.path.join(SIGN_FRAMES_DIR, imgs[i]))
                         except:
                             pass
                     last = current
@@ -50,7 +47,7 @@ def main():
                 draw_rect(screen, img)
 
 def next_frame(screen, image):
-    img = pygame.image.load(os.path.join(SOURCE_DIR, image))
+    img = pygame.image.load(os.path.join(SIGN_FRAMES_DIR, image))
     img = pygame.transform.scale(img, (640, 480))
     screen.blit(img, (0, 0))
     pygame.display.update()
@@ -80,10 +77,10 @@ def get_rnd_filename():
     return str(hex(uuid.uuid4().time))[2:]+".png"
 
 def save_cropped(image):
-    img = pygame.image.load(os.path.join(SOURCE_DIR, image))
+    img = pygame.image.load(os.path.join(SIGN_FRAMES_DIR, image))
     nimg = pygame.Surface((RECT_SIZE, RECT_SIZE))
     nimg.blit(img, (0, 0), get_rect_image())
-    pygame.image.save(nimg, os.path.join(CROP_DIR, get_rnd_filename()))
+    pygame.image.save(nimg, os.path.join(CROPPED_SIGNS_DIR, get_rnd_filename()))
 
 
 if __name__ == "__main__":

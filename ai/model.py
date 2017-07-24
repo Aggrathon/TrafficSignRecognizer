@@ -1,6 +1,12 @@
-import tensorflow as tf
+
 import random
 import os
+import tensorflow as tf
+
+
+IMAGES_WITH_SIGNS_PATH = os.path.join('data', 'cropped', '*.png')
+IMAGES_WITHOUT_SIGNS_PATH = os.path.join('data', 'none', '*.png')
+
 
 def model_fn(features, labels, mode):
     training = (mode == tf.estimator.ModeKeys.TRAIN)
@@ -64,14 +70,14 @@ def input_fn():
         image_reader = tf.WholeFileReader()
         crop_size = 60
         #no signs
-        nip = tf.train.string_input_producer(tf.train.match_filenames_once(os.path.join('data', 'none', "*.png")), name="without_signs")
+        nip = tf.train.string_input_producer(tf.train.match_filenames_once(IMAGES_WITHOUT_SIGNS_PATH), name="without_signs")
         _, nif = image_reader.read(nip)
         ni = tf.image.decode_png(nif)
         ni = [tf.random_crop(ni, (crop_size, crop_size, 3)) for _ in range(4)]
         ni = randomize_pictures(ni)
         ni = tf.reshape(tf.to_float(ni)/255.0, [4, crop_size, crop_size, 3])
         #cropped signs
-        sip = tf.train.string_input_producer(tf.train.match_filenames_once(os.path.join('data', 'cropped', '*.png')), name="with_signs")
+        sip = tf.train.string_input_producer(tf.train.match_filenames_once(IMAGES_WITH_SIGNS_PATH), name="with_signs")
         _, sif = image_reader.read(sip)
         si = tf.image.decode_png(sif)
         si = [tf.random_crop(si, (crop_size, crop_size, 3)) for _ in range(4)]

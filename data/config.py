@@ -1,0 +1,7 @@
+
+SOURCE_VIDEO_DIR = 'videos'
+SOURCE_FRAMES_DIR = 'frames'
+
+SIGN_FRAMES_DIR = 'signs'
+CROPPED_SIGNS_DIR = 'cropped'
+NO_SIGNS_FRAMES_DIR = 'none'

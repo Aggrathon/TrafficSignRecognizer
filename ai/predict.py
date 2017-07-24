@@ -1,4 +1,4 @@
-from model import network, randomize_pictures, model_fn
+from model import network, randomize_pictures, model_fn, IMAGES_WITH_SIGNS_PATH, IMAGES_WITHOUT_SIGNS_PATH
 import tensorflow as tf
 import os
 
@@ -52,11 +52,11 @@ def inputs():
     with tf.variable_scope('input'):
         image_reader = tf.WholeFileReader()
         crop_size = 60
-        sip = tf.train.string_input_producer(tf.train.match_filenames_once(os.path.join('data', 'cropped', "*.png")), name="with_signs")
+        sip = tf.train.string_input_producer(tf.train.match_filenames_once(IMAGES_WITH_SIGNS_PATH), name="with_signs")
         _, sif = image_reader.read(sip)
         si = tf.image.decode_png(sif)
         si = tf.random_crop(si, (crop_size, crop_size, 3))
-        nip = tf.train.string_input_producer(tf.train.match_filenames_once(os.path.join('data', 'none', "*.png")), name="without_signs")
+        nip = tf.train.string_input_producer(tf.train.match_filenames_once(IMAGES_WITHOUT_SIGNS_PATH), name="without_signs")
         _, nif = image_reader.read(nip)
         ni = tf.image.decode_png(nif)
         ni = tf.random_crop(ni, (crop_size, crop_size, 3))
