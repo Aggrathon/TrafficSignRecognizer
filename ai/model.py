@@ -20,7 +20,7 @@ def model_fn(features, labels, mode):
     prev_layer = tf.contrib.layers.flatten(prev_layer, )
     for i, size in enumerate([1024, 128]):
         with tf.variable_scope('fully_connected_%d'%i):
-            prev_layer = tf.layers.dense(prev_layer, size, tf.nn.relu, use_bias=True)
+            prev_layer = tf.layers.dense(prev_layer, size, tf.nn.relu, use_bias=True, kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-5))
             if training:
                 prev_layer = tf.layers.dropout(prev_layer, 0.3)
     logits = tf.layers.dense(prev_layer, 1, name="logits")
@@ -34,10 +34,13 @@ def model_fn(features, labels, mode):
         labels = labels['labels']
         with tf.variable_scope('training'):
             loss = tf.losses.sigmoid_cross_entropy(labels, logits, weights=(labels+1))
+            reg_loss = tf.losses.get_regularization_loss()
+            tf.summary.scalar('sigmoid_loss', loss)
+            tf.summary.scalar('reguralization_loss', reg_loss)
+            tf.summary.scalar('mean_squared_error', tf.losses.mean_squared_error(labels, predictions))
+            loss = loss+reg_loss
             adam = tf.train.AdamOptimizer(1e-4)
             trainer = adam.minimize(loss, global_step=tf.contrib.framework.get_global_step())
-            tf.summary.scalar('sigmoid_loss', loss)
-            tf.summary.scalar('mean_squared_error', tf.losses.mean_squared_error(labels, predictions))
         with tf.variable_scope('eval'):
             eval_dict = {
                 'accuracy': tf.metrics.accuracy(labels, predictions),
