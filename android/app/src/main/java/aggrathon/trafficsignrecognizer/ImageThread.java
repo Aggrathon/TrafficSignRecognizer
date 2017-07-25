@@ -3,7 +3,6 @@ package aggrathon.trafficsignrecognizer;
 
 import android.content.Context;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.ImageFormat;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
@@ -21,10 +20,8 @@ import android.util.Log;
 import android.util.Size;
 import android.view.Surface;
 import android.view.SurfaceHolder;
-import android.view.WindowManager;
 import android.widget.Toast;
 
-import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 public class ImageThread {
@@ -45,6 +42,7 @@ public class ImageThread {
 	private CameraCaptureSession cameraSession;
 	private Size captureSize;
 	private CaptureRequest captureRequest;
+	private int cameraSensorOrientation;
 
 
 	public ImageThread(SurfaceHolder liveView, MainActivity activity) {
@@ -68,9 +66,13 @@ public class ImageThread {
 				cameraDisconnect("No suitable camera size found", true);
 				return;
 			}
+			cameraSensorOrientation = characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION);
 		}
 		catch (CameraAccessException e) {
 			cameraDisconnectAccessException();
+		}
+		catch (NullPointerException e) {
+			Log.i("camera", "Could not get the camera orientation");
 		}
 		start();
 	}
@@ -198,14 +200,14 @@ public class ImageThread {
 		return null;
 	}
 
-	/***
+	/**
 	 * Gets the size from a camera that most closely matches an HD resolution with the aspect 320:240
 	 * @param cc The camera characteristics
 	 * @return The most optimal size (null if no sizes available at all)
 	 */
 	protected Size getCorrectSize(CameraCharacteristics cc) {
-		int targetWidth = 320*5;
-		int targetHeight = 240*5;
+		int targetWidth = 320*6;
+		int targetHeight = 240*6;
 		int targetSize = targetHeight*targetWidth;
 		Size current = null;
 		StreamConfigurationMap scm = cc.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
@@ -222,6 +224,26 @@ public class ImageThread {
 		}
 		return current;
 	}
+
+	/**
+	 * Used to set the JPEG_ROTATION parameter for capture requests
+	 * @return
+	 */
+	private int getJpegOrientation() {
+		int deviceOrientation = activity.getWindowManager().getDefaultDisplay().getRotation();
+		if (deviceOrientation == android.view.OrientationEventListener.ORIENTATION_UNKNOWN) return 0;
+
+		// Round device orientation to a multiple of 90
+		deviceOrientation = (deviceOrientation + 45) / 90 * 90;
+
+		// Calculate desired JPEG orientation relative to camera orientation to make
+		// the image upright relative to the device orientation
+		int jpegOrientation = (cameraSensorOrientation + deviceOrientation + 360) % 360;
+
+		return jpegOrientation;
+	}
+
+
 
 
 	private static class CameraStateCallback extends CameraDevice.StateCallback {
@@ -244,20 +266,8 @@ public class ImageThread {
 				builder.set(CaptureRequest.FLASH_MODE, CaptureRequest.FLASH_MODE_OFF); //Flash off
 				builder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON); //Exposure auto
 				builder.set(CaptureRequest.CONTROL_AWB_MODE, CaptureRequest.CONTROL_AWB_MODE_AUTO); //WB auto
-				switch (((WindowManager)imageThread.activity.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay().getRotation()) {
-					case Surface.ROTATION_0:
-						builder.set(CaptureRequest.JPEG_ORIENTATION, 0);
-						break;
-					case Surface.ROTATION_90:
-						builder.set(CaptureRequest.JPEG_ORIENTATION, 0);
-						break;
-					case Surface.ROTATION_180:
-						builder.set(CaptureRequest.JPEG_ORIENTATION, 90);
-						break;
-					case Surface.ROTATION_270:
-						builder.set(CaptureRequest.JPEG_ORIENTATION, 180);
-						break;
-				}
+				builder.set(CaptureRequest.JPEG_ORIENTATION, imageThread.getJpegOrientation());
+				builder.set(CaptureRequest.JPEG_QUALITY, (byte)95);
 				imageThread.captureRequest = builder.build();
 				cameraDevice.createCaptureSession(
 					Arrays.asList(imageThread.imageReader.getSurface(), imageThread.liveSurface),

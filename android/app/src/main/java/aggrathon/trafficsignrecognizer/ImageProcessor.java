@@ -52,10 +52,10 @@ public class ImageProcessor {
 		ready = false;
 		initialized = false;
 		futures.clear();
-		tf.close();
-		threadPoolExecutor.shutdown();
-		threadPoolExecutor = null;
+		if (tf != null) tf.close();
 		tf = null;
+		if(threadPoolExecutor != null) threadPoolExecutor.shutdown();
+		threadPoolExecutor = null;
 	}
 
 	public  boolean checkReady() {
@@ -103,6 +103,7 @@ public class ImageProcessor {
 			bmp2.recycle();
 			if(checkCancel(bmp, img, false))
 				return null;
+			Log.d("tensorflow", "Filling buffers took "+(System.currentTimeMillis()-startMillis)+" ms");
 
 			//Call tensorflow
 			tf.feed(INPUT_TENSOR_NAME, buffer, (long) (buffer.length));
@@ -110,22 +111,51 @@ public class ImageProcessor {
 			tf.fetch(OUTPUT_TENSOR_NAME, output);
 
 			//Check result
-			boolean pred = false;
+			int minX = -1000;
+			int minY = -1000;
+			int maxX = -1000;
+			int maxY = -1000;
+			int scaledCropSize = 60*bmp.getHeight()/240;
 			for (int i = 0; i < output.length; i++) {
-				if (output[0] > 0.5f) {
-					pred = true;
-					break;
-					//!!!
-					//TODO Crop Image to sign based on output
-					//!!!
+				if (output[i] > 0.5f) {
+					int x = getCropX(bmp, scaledCropSize, i/NUM_RECOGNITION_SAMPLES_Y)-scaledCropSize/4;
+					int y = getCropX(bmp, scaledCropSize, i%NUM_RECOGNITION_SAMPLES_Y)-scaledCropSize/4;
+					if (minX == -1000 || x < minX)
+						minX = x;
+					if (minY == -1000 || y < minY)
+						minY = y;
+					x += scaledCropSize+scaledCropSize/2;
+					y += scaledCropSize+scaledCropSize/2;
+					if (maxX == -1000 || x > maxX)
+						maxX = x;
+					if (maxY == -1000 || y > maxY)
+						maxY = y;
 				}
 			}
-			ready = true;
-			Log.d("tensorflow", "Classification took "+(System.currentTimeMillis()-startMillis)+" ms");
-			if (!pred) {
+			if (minX == -1000) {
+				Log.d("tensorflow", "Classification (no sign) took "+(System.currentTimeMillis()-startMillis)+" ms");
 				checkCancel(bmp, img, true);
 				return null;
 			}
+
+			//Crop the original image to mostly show signs
+			float w = maxX-minX;
+			float h = minX-minY;
+			if (w > 1.5*h) {
+				minY -= scaledCropSize/2;
+				maxY += scaledCropSize/2;
+			}
+			if (h > 1.5*w) {
+				minX -= scaledCropSize/2;
+				maxX += scaledCropSize/2;
+			}
+			if (minX < 0) minX = 0;
+			if (minY < 0) minY = 0;
+			if (maxX >= bmp.getWidth()) maxX = bmp.getWidth() -1;
+			if (maxY >= bmp.getHeight()) maxY = bmp.getHeight() -1;
+			ready = true;
+			bmp = Bitmap.createBitmap(bmp, minX, minY, maxX-minX, maxY-minY);
+			Log.d("tensorflow", "Classification (has sign) took "+(System.currentTimeMillis()-startMillis)+" ms");
 			return bmp;
 		}
 		catch (Exception e) {
@@ -146,11 +176,11 @@ public class ImageProcessor {
 	}
 
 	private int getCropX(Bitmap bmp, int cropWidth, int x) {
-		return Math.min(bmp.getWidth()-cropWidth, (int)((float)(bmp.getWidth() - cropWidth) * (float)x / (NUM_RECOGNITION_SAMPLES_X - 1)));
+		return Math.min(bmp.getWidth()-cropWidth-1, (int)((float)(bmp.getWidth() - cropWidth) * (float)x / (float)(NUM_RECOGNITION_SAMPLES_X - 1)));
 	}
 
 	private int getCropY(Bitmap bmp, int cropHeight, int y) {
-		return Math.min(bmp.getHeight()-cropHeight, (int)((float)(bmp.getHeight() - cropHeight) * (float)y / (NUM_RECOGNITION_SAMPLES_Y - 1)));
+		return Math.min(bmp.getHeight()-cropHeight-1, (int)((float)(bmp.getHeight() - cropHeight) * (float)y / (float)(NUM_RECOGNITION_SAMPLES_Y - 1)));
 	}
 
 	private class ImageCropper implements Runnable {
