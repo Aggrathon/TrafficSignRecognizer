@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 
 import os
 from subprocess import call
@@ -6,7 +5,7 @@ from subprocess import call
 from config import SOURCE_VIDEO_DIR, SOURCE_FRAMES_DIR
 
 
-videos = [s for s in os.listdir(SOURCE_VIDEO_DIR) if ('12' in s or '11' in s)]
+videos = os.listdir(SOURCE_VIDEO_DIR)
 images = [s[:s.find('.')]+"_%05d.png" for s in videos]
 os.makedirs('frames', exist_ok=True)
 for vid, img in zip(videos, images):
