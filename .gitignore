@@ -4,6 +4,8 @@ __pycahce__
 *.whl
 *.pyc
 
+### Android ###
+*.jks
 
 ### Own ###
 data/*

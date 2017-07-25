@@ -18,7 +18,7 @@ def model_fn(features, labels, mode):
             #if i == 1:
             #    prev_layer = tf.layers.batch_normalization(prev_layer, training=training)
     prev_layer = tf.contrib.layers.flatten(prev_layer, )
-    for i, size in enumerate([1024, 128]):
+    for i, size in enumerate([128, 16]):
         with tf.variable_scope('fully_connected_%d'%i):
             prev_layer = tf.layers.dense(prev_layer, size, tf.nn.relu, use_bias=True, kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-5))
             if training:

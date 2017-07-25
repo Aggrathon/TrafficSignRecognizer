@@ -56,7 +56,7 @@ def export2(vertical=5, horizontal=6, move=False):
         [OUTPUT_TENSOR_NAME],
         tf.float32.as_datatype_enum
     )
-    with tf.gfile.FastGFile(os.path.join(EXPORTED_MODEL_NAME, 'w') as f:
+    with tf.gfile.FastGFile(EXPORTED_MODEL_NAME, 'w') as f:
         f.write(output_graph.SerializeToString())
     if move:
         try:
