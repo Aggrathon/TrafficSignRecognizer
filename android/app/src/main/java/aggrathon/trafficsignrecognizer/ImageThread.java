@@ -5,7 +5,6 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.ImageFormat;
-import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
 import android.hardware.camera2.CameraCharacteristics;
@@ -22,8 +21,6 @@ import android.util.Log;
 import android.util.Size;
 import android.view.Surface;
 import android.view.SurfaceHolder;
-import android.view.SurfaceView;
-import android.view.TextureView;
 import android.view.WindowManager;
 import android.widget.Toast;
 
@@ -118,10 +115,10 @@ public class ImageThread {
 
 		HandlerThread t1 = thread1;
 		HandlerThread t2 = thread2;
-		thread1 = null;
-		thread2 = null;
 		handler1 = null;
 		handler2 = null;
+		thread1 = null;
+		thread2 = null;
 
 		if (t1 != null)
 			t1.quitSafely();
@@ -238,7 +235,7 @@ public class ImageThread {
 		public void onOpened(@NonNull final CameraDevice cameraDevice) {
 			try {
 				//Build ImageReader, CaptureRequest and CameraSession
-				CaptureRequest.Builder builder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
+				CaptureRequest.Builder builder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_RECORD);
 				imageThread.imageReader =  ImageReader.newInstance(imageThread.captureSize.getWidth(), imageThread.captureSize.getHeight(), ImageFormat.JPEG, 2);
 				builder.addTarget(imageThread.imageReader.getSurface());
 				builder.addTarget(imageThread.liveSurface);
@@ -303,7 +300,7 @@ public class ImageThread {
 	private static class CameraSessionCallback extends CameraCaptureSession.StateCallback {
 
 		ImageThread imageThread;
-		Bitmap bufferBmp;
+		Image bufferImage;
 		Runnable process;
 
 		public CameraSessionCallback(ImageThread imgth) {
@@ -312,14 +309,12 @@ public class ImageThread {
 			process = new Runnable() {
 				@Override
 				public void run() {
-					if (csc.bufferBmp == null)
+					if (csc.bufferImage == null)
 						return;
-					Bitmap bmp = imageThread.processor.process(csc.bufferBmp);
-					if (bmp == null) {
-						csc.bufferBmp.recycle();
-						csc.bufferBmp = null;
-					}
-					else
+					Image img = csc.bufferImage;
+					csc.bufferImage = null;
+					Bitmap bmp = imageThread.processor.process(img);
+					if (bmp != null)
 						imageThread.activity.setSignImage(bmp);
 				}
 			};
@@ -340,11 +335,7 @@ public class ImageThread {
 							return;
 						Image img = imageReader.acquireLatestImage();
 						if (imageThread.processor.checkReady()) {
-							ByteBuffer buf = img.getPlanes()[0].getBuffer();
-							byte[] bb = new byte[buf.remaining()];
-							buf.get(bb);
-							img.close();
-							bufferBmp = BitmapFactory.decodeByteArray(bb, 0, bb.length);
+							bufferImage = img;
 							if (imageThread.shouldStop)
 								return;
 							imageThread.handler2.post(process);
