@@ -69,6 +69,8 @@ def network():
     return tf.estimator.Estimator(model_fn, 'network', config)
 
 def input_fn():
+    num_signs = 4
+    num_none = 6
     with tf.variable_scope('training_input'):
         image_reader = tf.WholeFileReader()
         crop_size = 60
@@ -76,25 +78,25 @@ def input_fn():
         nip = tf.train.string_input_producer(tf.train.match_filenames_once(IMAGES_WITHOUT_SIGNS_PATH), name="without_signs")
         _, nif = image_reader.read(nip)
         ni = tf.image.decode_png(nif)
-        ni = [tf.random_crop(ni, (crop_size, crop_size, 3)) for _ in range(4)]
+        ni = [tf.random_crop(ni, (crop_size, crop_size, 3)) for _ in range(num_none)]
         ni = randomize_pictures(ni)
-        ni = tf.reshape(tf.to_float(ni)/255.0, [4, crop_size, crop_size, 3])
+        ni = tf.reshape(tf.to_float(ni)/255.0, [num_none, crop_size, crop_size, 3])
         #cropped signs
         sip = tf.train.string_input_producer(tf.train.match_filenames_once(IMAGES_WITH_SIGNS_PATH), name="with_signs")
         _, sif = image_reader.read(sip)
         si = tf.image.decode_png(sif)
-        si = [tf.random_crop(si, (crop_size, crop_size, 3)) for _ in range(4)]
+        si = [tf.random_crop(si, (crop_size, crop_size, 3)) for _ in range(num_signs)]
         si = randomize_pictures(si)
-        si = tf.reshape(tf.to_float(si)/255.0, [4, crop_size, crop_size, 3])
+        si = tf.reshape(tf.to_float(si)/255.0, [num_signs, crop_size, crop_size, 3])
         #batch
         images = tf.concat((si, ni), 0)
-        labels = [[1]]*4+[[0]]*4
+        labels = [[1]]*num_signs+[[0]]*num_none
         images, labels = tf.train.shuffle_batch([images, labels], 32, 1000, 100, 4, enqueue_many=True)
         return dict(input=images), dict(labels=labels)
 
 def randomize_pictures(tensors):
     tensors = [tf.image.random_flip_left_right(i) for i in tensors]
-    tensors = [tf.image.random_brightness(i, 0.02) for i in tensors]
-    tensors = [tf.image.random_contrast(i, 0.98, 1.02) for i in tensors]
-    tensors = [tf.image.random_saturation(i, 0.98, 1.04) for i in tensors]
+    tensors = [tf.image.random_brightness(i, 0.05) for i in tensors]
+    tensors = [tf.image.random_contrast(i, 0.95, 1.05) for i in tensors]
+    tensors = [tf.image.random_saturation(i, 0.95, 1.1) for i in tensors]
     return tensors
