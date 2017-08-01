@@ -4,13 +4,11 @@ package aggrathon.trafficsignrecognizer;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
-import android.media.Image;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 
 import org.tensorflow.contrib.android.TensorFlowInferenceInterface;
 
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingDeque;
@@ -20,8 +18,8 @@ import java.util.concurrent.TimeUnit;
 public class ImageProcessor {
 
 	protected static final String MODEL_ASSET_PATH = "model.pb";
-	protected static final int NUM_RECOGNITION_SAMPLES_X = 8;
-	protected static final int NUM_RECOGNITION_SAMPLES_Y = 6;
+	protected static final int NUM_RECOGNITION_SAMPLES_X = 7;
+	protected static final int NUM_RECOGNITION_SAMPLES_Y = 5;
 	protected static final String INPUT_TENSOR_NAME = "input:0";
 	protected static final String OUTPUT_TENSOR_NAME = "predictions:0";
 
@@ -63,22 +61,18 @@ public class ImageProcessor {
 	}
 
 
-	public Bitmap process(Image img) {
+	public Bitmap process(byte[] img) {
 		startMillis = System.currentTimeMillis();
 		Bitmap bmp = null;
-		if(checkCancel(bmp, img, false))
+		if(checkCancel(bmp, false))
 			return null;
 		ready = false;
 		try {
 			//Decode Image
-			ByteBuffer buf = img.getPlanes()[0].getBuffer();
-			byte[] bb = new byte[buf.remaining()];
-			buf.get(bb);
-			img.close();
+			bmp = BitmapFactory.decodeByteArray(img, 0, img.length);
 			img = null;
-			bmp = BitmapFactory.decodeByteArray(bb, 0, bb.length);
 			Bitmap bmp2 = Bitmap.createScaledBitmap(bmp, (int)((float)bmp.getWidth()/bmp.getHeight()*240), 240, true);
-			if(checkCancel(bmp, img, false))
+			if(checkCancel(bmp, false))
 				return null;
 
 			//Fill buffer
@@ -91,7 +85,7 @@ public class ImageProcessor {
 					int y = getCropY(bmp2, 60, j);
 					int x = getCropX(bmp2, 60, i);
 					if (threadPoolExecutor == null) {
-						checkCancel(bmp, img, true);
+						checkCancel(bmp, true);
 						return null;
 					}
 					futures.add(threadPoolExecutor.submit(new ImageCropper(this, bmp2, x, y, 60, 60, 60*60*3*(i*NUM_RECOGNITION_SAMPLES_Y+j))));
@@ -101,7 +95,7 @@ public class ImageProcessor {
 				if(initialized)
 					futures.get(i).get();
 			bmp2.recycle();
-			if(checkCancel(bmp, img, false))
+			if(checkCancel(bmp, false))
 				return null;
 			Log.d("tensorflow", "Filling buffers took "+(System.currentTimeMillis()-startMillis)+" ms");
 
@@ -134,7 +128,7 @@ public class ImageProcessor {
 			}
 			if (minX == -1000) {
 				Log.d("tensorflow", "Classification (no sign) took "+(System.currentTimeMillis()-startMillis)+" ms");
-				checkCancel(bmp, img, true);
+				checkCancel(bmp, true);
 				return null;
 			}
 
@@ -160,15 +154,14 @@ public class ImageProcessor {
 		}
 		catch (Exception e) {
 			Log.e("tensorflow", "Couldn't run the tensorflow graph ("+e.toString()+")");
-			checkCancel(bmp, img, true);
+			checkCancel(bmp, true);
 			return null;
 		}
 	}
 
-	private boolean checkCancel(Bitmap bmp, Image img, boolean force) {
+	private boolean checkCancel(Bitmap bmp, boolean force) {
 		if(!initialized || force) {
 			if(bmp != null) bmp.recycle();
-			if(img != null) img.close();
 			ready = true;
 			return true;
 		}

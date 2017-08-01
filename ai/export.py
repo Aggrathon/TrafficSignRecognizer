@@ -23,7 +23,7 @@ def export():
         EXPORT_FOLDER,
         tf.estimator.export.build_raw_serving_input_receiver_fn(td))
 
-def export2(vertical=5, horizontal=6, move=False):
+def export2(move=False):
     tf.logging.set_verbosity(tf.logging.INFO)
     inp = tf.placeholder(tf.float32, [None], name=INPUT_TENSOR_NAME)
     inp = tf.reshape(inp, [-1, 60, 60, 3])

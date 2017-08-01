@@ -22,6 +22,7 @@ import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.widget.Toast;
 
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 public class ImageThread {
@@ -310,7 +311,7 @@ public class ImageThread {
 	private static class CameraSessionCallback extends CameraCaptureSession.StateCallback {
 
 		ImageThread imageThread;
-		Image bufferImage;
+		byte[] bufferImage;
 		Runnable process;
 
 		public CameraSessionCallback(ImageThread imgth) {
@@ -321,7 +322,7 @@ public class ImageThread {
 				public void run() {
 					if (csc.bufferImage == null)
 						return;
-					Image img = csc.bufferImage;
+					byte[] img = csc.bufferImage;
 					csc.bufferImage = null;
 					Bitmap bmp = imageThread.processor.process(img);
 					if (bmp != null)
@@ -344,8 +345,12 @@ public class ImageThread {
 						if(imageThread.shouldStop)
 							return;
 						Image img = imageReader.acquireLatestImage();
-						if (imageThread.processor.checkReady()) {
-							bufferImage = img;
+						if (imageThread.processor.checkReady() && img != null) {
+							ByteBuffer buf = img.getPlanes()[0].getBuffer();
+							byte[] bb = new byte[buf.remaining()];
+							buf.get(bb);
+							img.close();
+							bufferImage = bb;
 							if (imageThread.shouldStop)
 								return;
 							imageThread.handler2.post(process);
