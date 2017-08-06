@@ -207,8 +207,8 @@ public class ImageThread {
 	 * @return The most optimal size (null if no sizes available at all)
 	 */
 	protected Size getCorrectSize(CameraCharacteristics cc) {
-		int targetWidth = 320*6;
-		int targetHeight = 240*6;
+		int targetWidth = 320*4;
+		int targetHeight = 240*4;
 		int targetSize = targetHeight*targetWidth;
 		Size current = null;
 		StreamConfigurationMap scm = cc.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);

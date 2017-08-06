@@ -9,18 +9,20 @@ IMAGES_WITHOUT_SIGNS_PATH = os.path.join('data', 'none', '*.png')
 
 
 def model_fn(features, labels, mode):
+    """
+        The function that generates the network for the estimator
+    """
     training = (mode == tf.estimator.ModeKeys.TRAIN)
     prev_layer = features['input']
     for i, size in enumerate([32, 48, 64]):
         with tf.variable_scope('convolution_%d'%i):
             prev_layer = tf.layers.conv2d(prev_layer, size, 5, 1, 'valid', activation=tf.nn.relu)
-            prev_layer = tf.layers.max_pooling2d(prev_layer, 2, 2, 'valid')
-            #if i == 1:
-            #    prev_layer = tf.layers.batch_normalization(prev_layer, training=training)
+            prev_layer = tf.layers.max_pooling2d(prev_layer, 3, 2, 'same')
+            prev_layer = tf.nn.local_response_normalization(prev_layer, 4, 1.0, 1e-4, 0.75)
     prev_layer = tf.contrib.layers.flatten(prev_layer, )
-    for i, size in enumerate([128, 16]):
+    for i, size in enumerate([256, 64]):
         with tf.variable_scope('fully_connected_%d'%i):
-            prev_layer = tf.layers.dense(prev_layer, size, tf.nn.relu, use_bias=True, kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-5))
+            prev_layer = tf.layers.dense(prev_layer, size, tf.nn.relu, use_bias=True)
             if training:
                 prev_layer = tf.layers.dropout(prev_layer, 0.3)
     logits = tf.layers.dense(prev_layer, 1, name="logits")
@@ -33,12 +35,12 @@ def model_fn(features, labels, mode):
     if labels is not None:
         labels = labels['labels']
         with tf.variable_scope('training'):
-            loss = tf.losses.sigmoid_cross_entropy(labels, logits, weights=(labels+1))
-            reg_loss = tf.losses.get_regularization_loss()
+            loss = tf.losses.sigmoid_cross_entropy(labels, logits)
             tf.summary.scalar('sigmoid_loss', loss)
-            tf.summary.scalar('reguralization_loss', reg_loss)
+            boolean = tf.round(predictions)
+            tf.summary.scalar('false_positive', tf.reduce_sum(boolean * (1.0 - tf.to_float(labels))))
+            tf.summary.scalar('false_negative', tf.reduce_sum((1.0 - boolean) * tf.to_float(labels)))
             tf.summary.scalar('mean_squared_error', tf.losses.mean_squared_error(labels, predictions))
-            loss = loss+reg_loss
             adam = tf.train.AdamOptimizer(1e-4)
             trainer = adam.minimize(loss, global_step=tf.contrib.framework.get_global_step())
         with tf.variable_scope('eval'):
@@ -63,38 +65,49 @@ def model_fn(features, labels, mode):
         export_outputs=output_dict)
 
 def network():
+    """
+        Create the estimator
+    """
     config = tf.estimator.RunConfig().replace(
         #save_summary_steps = 20,
-        tf_random_seed = random.randrange(0, 1<<30))
+        tf_random_seed=random.randrange(0, 1<<30))
     return tf.estimator.Estimator(model_fn, 'network', config)
 
 def input_fn():
-    num_signs = 4
-    num_none = 6
+    """
+        Creates input dictionaries for the estimator
+    """
+    num_signs = 6
+    num_none = 12
+    crop_size = 60
     with tf.variable_scope('training_input'):
-        image_reader = tf.WholeFileReader()
-        crop_size = 60
-        #no signs
-        nip = tf.train.string_input_producer(tf.train.match_filenames_once(IMAGES_WITHOUT_SIGNS_PATH), name="without_signs")
-        _, nif = image_reader.read(nip)
-        ni = tf.image.decode_png(nif)
-        ni = [tf.random_crop(ni, (crop_size, crop_size, 3)) for _ in range(num_none)]
-        ni = randomize_pictures(ni)
-        ni = tf.reshape(tf.to_float(ni)/255.0, [num_none, crop_size, crop_size, 3])
-        #cropped signs
-        sip = tf.train.string_input_producer(tf.train.match_filenames_once(IMAGES_WITH_SIGNS_PATH), name="with_signs")
-        _, sif = image_reader.read(sip)
-        si = tf.image.decode_png(sif)
-        si = [tf.random_crop(si, (crop_size, crop_size, 3)) for _ in range(num_signs)]
-        si = randomize_pictures(si)
-        si = tf.reshape(tf.to_float(si)/255.0, [num_signs, crop_size, crop_size, 3])
-        #batch
-        images = tf.concat((si, ni), 0)
-        labels = [[1]]*num_signs+[[0]]*num_none
-        images, labels = tf.train.shuffle_batch([images, labels], 32, 1000, 100, 4, enqueue_many=True)
+        none_images = produce_images_from_folder(IMAGES_WITHOUT_SIGNS_PATH, num_none, crop_size, name="without_signs")
+        si1 = produce_images_from_folder(IMAGES_WITH_SIGNS_PATH, num_signs, crop_size, 0.8, name="with_signs_1")
+        si2 = produce_images_from_folder(IMAGES_WITH_SIGNS_PATH, num_signs, crop_size, 0.8, name="with_signs_2")
+        images = tf.concat((si1, si2, none_images), 0)
+        labels = [[0.95]]*num_signs*2 + [[0]]*num_none
+        images, labels = tf.train.shuffle_batch([images, labels], 48, 2000, 100, 4, enqueue_many=True)
         return dict(input=images), dict(labels=labels)
 
+
+def produce_images_from_folder(folder, num_variants=6, size=60, central_crop=1, name=None):
+    """
+        Reads files from the folder, converts them to images and applies some randomization and cropping
+    """
+    image_reader = tf.WholeFileReader()
+    sip = tf.train.string_input_producer(tf.train.match_filenames_once(folder), name=name)
+    _, image_file = image_reader.read(sip)
+    image = tf.image.decode_png(image_file)
+    if central_crop < 1:
+        image = tf.image.central_crop(image, central_crop)
+    image = [tf.random_crop(image, (size, size, 3)) for _ in range(num_variants)]
+    image = randomize_pictures(image)
+    return tf.reshape(tf.to_float(image)/255.0, [size, size, size, 3])
+
 def randomize_pictures(tensors):
+    """
+        Randomises images in the list
+    """
     tensors = [tf.image.random_flip_left_right(i) for i in tensors]
     tensors = [tf.image.random_brightness(i, 0.05) for i in tensors]
     tensors = [tf.image.random_contrast(i, 0.95, 1.05) for i in tensors]

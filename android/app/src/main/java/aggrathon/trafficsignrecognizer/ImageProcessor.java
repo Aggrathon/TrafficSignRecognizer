@@ -71,7 +71,9 @@ public class ImageProcessor {
 			//Decode Image
 			bmp = BitmapFactory.decodeByteArray(img, 0, img.length);
 			img = null;
-			Bitmap bmp2 = Bitmap.createScaledBitmap(bmp, (int)((float)bmp.getWidth()/bmp.getHeight()*240), 240, true);
+			int scaleY = 240;
+			int scaleX = (int)((float)bmp.getWidth()/bmp.getHeight()*240);
+			Bitmap bmp2 = Bitmap.createScaledBitmap(bmp, scaleX, scaleY, true);
 			if(checkCancel(bmp, false))
 				return null;
 
@@ -111,15 +113,15 @@ public class ImageProcessor {
 			int maxY = -1000;
 			int scaledCropSize = 60*bmp.getHeight()/240;
 			for (int i = 0; i < output.length; i++) {
-				if (output[i] > 0.5f) {
-					int x = getCropX(bmp, scaledCropSize, i/NUM_RECOGNITION_SAMPLES_Y)-scaledCropSize/4;
-					int y = getCropX(bmp, scaledCropSize, i%NUM_RECOGNITION_SAMPLES_Y)-scaledCropSize/4;
+				if (output[i] > 0.8f) {
+					int x = getCropX(bmp, scaledCropSize, i/NUM_RECOGNITION_SAMPLES_Y)-scaledCropSize/6;
+					int y = getCropX(bmp, scaledCropSize, i%NUM_RECOGNITION_SAMPLES_Y)-scaledCropSize/6;
 					if (minX == -1000 || x < minX)
 						minX = x;
 					if (minY == -1000 || y < minY)
 						minY = y;
-					x += scaledCropSize+scaledCropSize/2;
-					y += scaledCropSize+scaledCropSize/2;
+					x += scaledCropSize+scaledCropSize/3;
+					y += scaledCropSize+scaledCropSize/3;
 					if (maxX == -1000 || x > maxX)
 						maxX = x;
 					if (maxY == -1000 || y > maxY)
@@ -136,12 +138,12 @@ public class ImageProcessor {
 			float w = maxX-minX;
 			float h = minX-minY;
 			if (w > 1.5*h) {
-				minY -= scaledCropSize/2;
-				maxY += scaledCropSize/2;
+				minY -= scaledCropSize/4;
+				maxY += scaledCropSize/4;
 			}
 			if (h > 1.5*w) {
-				minX -= scaledCropSize/2;
-				maxX += scaledCropSize/2;
+				minX -= scaledCropSize/4;
+				maxX += scaledCropSize/4;
 			}
 			if (minX < 0) minX = 0;
 			if (minY < 0) minY = 0;

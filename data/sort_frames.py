@@ -2,7 +2,7 @@
 import os
 import pygame
 
-from config import NO_SIGNS_FRAMES_DIR, SIGN_FRAMES_DIR, SOURCE_FRAMES_DIR, IMAGE_HEIGHT, IMAGE_WIDTH, SORTING_SCALE
+from config import NO_SIGNS_FRAMES_DIR, SIGN_FRAMES_DIR, SOURCE_FRAMES_DIR, IMAGE_HEIGHT, IMAGE_WIDTH, SORTING_SCALE, IMAGES_PER_SECOND
 
 def main():
     os.makedirs(NO_SIGNS_FRAMES_DIR, exist_ok=True)
@@ -28,9 +28,9 @@ def main():
                     for i in range(last, current):
                         os.rename(os.path.join(SOURCE_FRAMES_DIR, imgs[i]), os.path.join(NO_SIGNS_FRAMES_DIR, imgs[i]))
                     last = current
-                    current += 6
+                    current += IMAGES_PER_SECOND
                 if event.key == pygame.K_BACKSPACE:
-                    current -= 20
+                    current -= IMAGES_PER_SECOND*3+3
                     for i in range(current, last+1):
                         try:
                             os.rename(os.path.join(NO_SIGNS_FRAMES_DIR, imgs[i]), os.path.join(SOURCE_FRAMES_DIR, imgs[i]))
@@ -42,7 +42,7 @@ def main():
                             pass
                     last = current
                 elif event.key == pygame.K_o:
-                    current += 6
+                    current += IMAGES_PER_SECOND
                     for i in range(last, current):
                         os.rename(os.path.join(SOURCE_FRAMES_DIR, imgs[i]), os.path.join(SIGN_FRAMES_DIR, imgs[i]))
                     last = current
