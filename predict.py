@@ -1,4 +1,4 @@
-from model import network, randomize_pictures, model_fn, IMAGES_WITH_SIGNS_PATH, IMAGES_WITHOUT_SIGNS_PATH
+from model import produce_images_from_folder, model_fn, IMAGES_WITH_SIGNS_PATH, IMAGES_WITHOUT_SIGNS_PATH
 import tensorflow as tf
 import os
 
@@ -50,20 +50,11 @@ class PredictionStats():
 
 def inputs():
     with tf.variable_scope('input'):
-        image_reader = tf.WholeFileReader()
-        crop_size = 60
-        sip = tf.train.string_input_producer(tf.train.match_filenames_once(IMAGES_WITH_SIGNS_PATH), name="with_signs")
-        _, sif = image_reader.read(sip)
-        si = tf.image.decode_png(sif)
-        si = tf.random_crop(si, (crop_size, crop_size, 3))
-        nip = tf.train.string_input_producer(tf.train.match_filenames_once(IMAGES_WITHOUT_SIGNS_PATH), name="without_signs")
-        _, nif = image_reader.read(nip)
-        ni = tf.image.decode_png(nif)
-        ni = tf.random_crop(ni, (crop_size, crop_size, 3))
-        images = [ni, si]
-        images = randomize_pictures(images)
-        images = tf.reshape(tf.to_float(images)/255.0, [2, crop_size, crop_size, 3])
-    inp, label = tf.train.batch([images, [0, 1]], 1, 1, 80, enqueue_many=True)
+        si = produce_images_from_folder(IMAGES_WITH_SIGNS_PATH, 1, central_crop=0.8, name="with_sign")
+        ni = produce_images_from_folder(IMAGES_WITHOUT_SIGNS_PATH, 1, name="without_sign")
+        images = tf.concat((si, ni), 0)
+        labels = [1, 0]
+    inp, label = tf.train.batch([images, labels], 1, 1, 80, enqueue_many=True)
     return dict(input=inp), label
 
 def get_session():

@@ -1,3 +1,4 @@
 tensorflow
 numpy
 pygame # Used for manually classifying training data 
+# Pillow # used for saving identified difficult images

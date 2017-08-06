@@ -3,9 +3,13 @@ import random
 import os
 import tensorflow as tf
 
+from data.config import DIR_CROPPED_SIGNS, DIR_CROPPED_NO_SIGNS, DIR_FRAMES_NO_SIGNS
 
-IMAGES_WITH_SIGNS_PATH = os.path.join('data', 'cropped', '*.png')
-IMAGES_WITHOUT_SIGNS_PATH = os.path.join('data', 'none', '*.png')
+
+IMAGES_WITH_SIGNS_PATH = os.path.join(DIR_CROPPED_SIGNS, '*.png')
+IMAGES_WITHOUT_SIGNS_CROPPED_PATH = os.path.join(DIR_CROPPED_NO_SIGNS, '*.png')
+IMAGES_WITHOUT_SIGNS_PATH = os.path.join(DIR_FRAMES_NO_SIGNS, '*.png')
+CROPPED_IMAGE_SIZE = 60
 
 
 def model_fn(features, labels, mode):
@@ -79,18 +83,19 @@ def input_fn():
     """
     num_signs = 6
     num_none = 12
-    crop_size = 60
+    num_none_diff = 2
     with tf.variable_scope('training_input'):
-        none_images = produce_images_from_folder(IMAGES_WITHOUT_SIGNS_PATH, num_none, crop_size, name="without_signs")
-        si1 = produce_images_from_folder(IMAGES_WITH_SIGNS_PATH, num_signs, crop_size, 0.8, name="with_signs_1")
-        si2 = produce_images_from_folder(IMAGES_WITH_SIGNS_PATH, num_signs, crop_size, 0.8, name="with_signs_2")
-        images = tf.concat((si1, si2, none_images), 0)
-        labels = [[0.95]]*num_signs*2 + [[0]]*num_none
+        ni1 = produce_images_from_folder(IMAGES_WITHOUT_SIGNS_PATH, num_none, name="without_signs")
+        ni2 = produce_images_from_folder(IMAGES_WITHOUT_SIGNS_CROPPED_PATH, num_none_diff, name="without_signs_difficult")
+        si1 = produce_images_from_folder(IMAGES_WITH_SIGNS_PATH, num_signs, central_crop=0.8, name="with_signs_1")
+        si2 = produce_images_from_folder(IMAGES_WITH_SIGNS_PATH, num_signs, central_crop=0.8, name="with_signs_2")
+        images = tf.concat((si1, si2, ni1, ni2), 0)
+        labels = [[0.95]]*num_signs*2 + [[0]]*num_none + [[0]]*num_none_diff
         images, labels = tf.train.shuffle_batch([images, labels], 48, 2000, 100, 4, enqueue_many=True)
         return dict(input=images), dict(labels=labels)
 
 
-def produce_images_from_folder(folder, num_variants=6, size=60, central_crop=1, name=None):
+def produce_images_from_folder(folder, num_variants=6, size=CROPPED_IMAGE_SIZE, randomise=True, central_crop=1, name=None):
     """
         Reads files from the folder, converts them to images and applies some randomization and cropping
     """
@@ -101,8 +106,9 @@ def produce_images_from_folder(folder, num_variants=6, size=60, central_crop=1, 
     if central_crop < 1:
         image = tf.image.central_crop(image, central_crop)
     image = [tf.random_crop(image, (size, size, 3)) for _ in range(num_variants)]
-    image = randomize_pictures(image)
-    return tf.reshape(tf.to_float(image)/255.0, [size, size, size, 3])
+    if randomise:
+        image = randomize_pictures(image)
+    return tf.reshape(tf.to_float(image)/255.0, [num_variants, size, size, 3])
 
 def randomize_pictures(tensors):
     """
