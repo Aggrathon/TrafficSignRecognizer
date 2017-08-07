@@ -86,11 +86,15 @@ def input_fn():
     num_none_diff = 2
     with tf.variable_scope('training_input'):
         ni1 = produce_images_from_folder(IMAGES_WITHOUT_SIGNS_PATH, num_none, name="without_signs")
-        ni2 = produce_images_from_folder(IMAGES_WITHOUT_SIGNS_CROPPED_PATH, num_none_diff, name="without_signs_difficult")
         si1 = produce_images_from_folder(IMAGES_WITH_SIGNS_PATH, num_signs, central_crop=0.8, name="with_signs_1")
         si2 = produce_images_from_folder(IMAGES_WITH_SIGNS_PATH, num_signs, central_crop=0.8, name="with_signs_2")
-        images = tf.concat((si1, si2, ni1, ni2), 0)
-        labels = [[0.95]]*num_signs*2 + [[0]]*num_none + [[0]]*num_none_diff
+        if os.path.isdir(DIR_CROPPED_NO_SIGNS) and len(os.listdir(DIR_CROPPED_NO_SIGNS)) > 50:
+            ni2 = produce_images_from_folder(IMAGES_WITHOUT_SIGNS_CROPPED_PATH, num_none_diff, name="without_signs_difficult")
+            images = tf.concat((si1, si2, ni1, ni2), 0)
+            labels = [[0.95]]*num_signs*2 + [[0]]*num_none + [[0]]*num_none_diff
+        else:
+            images = tf.concat((si1, si2, ni1), 0)
+            labels = [[0.95]]*num_signs*2 + [[0]]*num_none
         images, labels = tf.train.shuffle_batch([images, labels], 48, 2000, 100, 4, enqueue_many=True)
         return dict(input=images), dict(labels=labels)
 
@@ -115,7 +119,7 @@ def randomize_pictures(tensors):
         Randomises images in the list
     """
     tensors = [tf.image.random_flip_left_right(i) for i in tensors]
-    tensors = [tf.image.random_brightness(i, 0.05) for i in tensors]
-    tensors = [tf.image.random_contrast(i, 0.95, 1.05) for i in tensors]
-    tensors = [tf.image.random_saturation(i, 0.95, 1.1) for i in tensors]
+    tensors = [tf.image.random_brightness(i, 0.01) for i in tensors]
+    tensors = [tf.image.random_contrast(i, 0.92, 1.12) for i in tensors]
+    tensors = [tf.image.random_saturation(i, 0.92, 1.12) for i in tensors]
     return tensors

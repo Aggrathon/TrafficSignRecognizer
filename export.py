@@ -3,12 +3,10 @@ import sys
 import tensorflow as tf
 from tensorflow.python.tools.freeze_graph import freeze_graph
 from tensorflow.python.tools.optimize_for_inference_lib import optimize_for_inference
-import numpy as np
-from model import network, input_fn, model_fn
+from model import network, input_fn, model_fn, CROPPED_IMAGE_SIZE
 from predict import PredictionStats, get_session
 
 EXPORT_FOLDER = os.path.join('network', 'export')
-EXPORTED_NUMPY_DATA = os.path.join(EXPORT_FOLDER, 'data.npy')
 INPUT_TENSOR_NAME = 'input'
 OUTPUT_TENSOR_NAME = 'predictions'
 EXPORTED_MODEL_NAME = os.path.join(EXPORT_FOLDER, 'model.pb')
@@ -18,7 +16,9 @@ EXPORTED_MODEL_ANDROID = os.path.join('android', 'app', 'src', 'main', 'assets',
 def export():
     tf.logging.set_verbosity(tf.logging.INFO)
     nn = network()
-    td = dict(input=tf.placeholder(tf.float32, [16, 60, 60, 3], INPUT_TENSOR_NAME))
+    inp = tf.placeholder(tf.float32, [None], name=INPUT_TENSOR_NAME)
+    inp = tf.reshape(inp, [-1, CROPPED_IMAGE_SIZE, CROPPED_IMAGE_SIZE, 3])
+    td = dict(input=inp)
     nn.export_savedmodel(
         EXPORT_FOLDER,
         tf.estimator.export.build_raw_serving_input_receiver_fn(td))
@@ -26,7 +26,7 @@ def export():
 def export2(move=False):
     tf.logging.set_verbosity(tf.logging.INFO)
     inp = tf.placeholder(tf.float32, [None], name=INPUT_TENSOR_NAME)
-    inp = tf.reshape(inp, [-1, 60, 60, 3])
+    inp = tf.reshape(inp, [-1, CROPPED_IMAGE_SIZE, CROPPED_IMAGE_SIZE, 3])
     model_fn(dict(input=inp), None, tf.estimator.ModeKeys.PREDICT)
     sess = get_session()
     tf.train.Saver().save(sess, os.path.join(EXPORT_FOLDER, 'checkpoint.ckpt'))
@@ -65,35 +65,7 @@ def export2(move=False):
             pass
         os.rename(EXPORTED_MODEL_NAME, EXPORTED_MODEL_ANDROID)
 
-
-def data():
-    input = input_fn()[0]['input']
-    with tf.Session() as sess:
-        sess.run(tf.local_variables_initializer())
-        sess.run(tf.global_variables_initializer())
-        coord = tf.train.Coordinator()
-        tf.train.start_queue_runners(sess, coord)
-        arr = sess.run(input)
-        np.save(EXPORTED_NUMPY_DATA, arr)
-        coord.request_stop()
-        coord.join()
-
-
 def predict():
-    print("Creating session")
-    sess = tf.Session()
-    sess.run(tf.local_variables_initializer())
-    sess.run(tf.global_variables_initializer())
-    load = tf.saved_model.loader.load(sess, ['serve'], get_latest_export())
-    output_tensor = sess.graph.get_tensor_by_name(OUTPUT_TENSOR_NAME+':0')
-    arr = np.load(EXPORTED_NUMPY_DATA)
-    pred = sess.run(output_tensor, {INPUT_TENSOR_NAME+':0': arr})
-    for p in pred:
-        print("Prediction: %.2f"%p)
-    sess.close()
-
-
-def predict2():
     inp = input_fn()
     input_tensor = inp[0]['input']
     label_tensor = inp[1]['labels']
@@ -133,18 +105,12 @@ if __name__ == "__main__":
     if len(sys.argv) != 2:
         print("Arguments:")
         print(' e  export model')
-        print(' p  predict using the latest exported model and training tensors')
-        print(' d  export a training tensor as data')
-        print(' o  predict using the latest exported model and exported data')
         print(' r  export model for android')
-        print(' t  export model for android and move it to the app assets')
+        print(' t  export model for android and move it to the app assets folder')
+        print(' p  predict using the latest exported model and training tensors')
     elif sys.argv[1] == 'e':
         export()
     elif sys.argv[1] == 'p':
-        predict2()
-    elif sys.argv[1] == 'd':
-        data()
-    elif sys.argv[1] == 'o':
         predict()
     elif sys.argv[1] == 'r':
         export2()
