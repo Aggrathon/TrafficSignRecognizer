@@ -2,7 +2,7 @@
 import os
 import pygame
 
-from config import DIR_FRAMES_NO_SIGNS, DIR_FRAMES_SIGNS, SOURCE_FRAMES_DIR, IMAGES_PER_SECOND
+from config import DIR_FRAMES_NO_SIGNS, DIR_FRAMES_POTENTIAL, SOURCE_FRAMES_DIR, IMAGES_PER_SECOND
 from window import Window
 
 
@@ -15,7 +15,7 @@ def no_sign(images, window, index, last):
 def has_sign(images, window, index, last):
     index += IMAGES_PER_SECOND
     for i in range(last, index):
-        os.rename(os.path.join(SOURCE_FRAMES_DIR, images[i]), os.path.join(DIR_FRAMES_SIGNS, images[i]))
+        os.rename(os.path.join(SOURCE_FRAMES_DIR, images[i]), os.path.join(DIR_FRAMES_POTENTIAL, images[i]))
     window.show_image(images[index], SOURCE_FRAMES_DIR)
     return index, index
 
@@ -27,7 +27,7 @@ def undo(images, window, index, last):
         except:
             pass
         try:
-            os.rename(os.path.join(DIR_FRAMES_SIGNS, images[i]), os.path.join(SOURCE_FRAMES_DIR, images[i]))
+            os.rename(os.path.join(DIR_FRAMES_POTENTIAL, images[i]), os.path.join(SOURCE_FRAMES_DIR, images[i]))
         except:
             pass
     window.show_image(images[index], SOURCE_FRAMES_DIR)
@@ -36,7 +36,7 @@ def undo(images, window, index, last):
 
 def main():
     os.makedirs(DIR_FRAMES_NO_SIGNS, exist_ok=True)
-    os.makedirs(DIR_FRAMES_SIGNS, exist_ok=True)
+    os.makedirs(DIR_FRAMES_POTENTIAL, exist_ok=True)
     window = Window("P: No Sign    O: Has Sign    <=: Undo")
     images = os.listdir(SOURCE_FRAMES_DIR)
     images.sort(reverse=True)

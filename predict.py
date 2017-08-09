@@ -4,7 +4,7 @@ import sys
 import tensorflow as tf
 import numpy as np
 from model import input_fn, model_fn, IMAGES_WITH_SIGNS_PATH, IMAGES_WITHOUT_SIGNS_PATH, CROPPED_IMAGE_SIZE, IMAGES_WITHOUT_SIGNS_CROPPED_PATH
-from data.config import DIR_CROPPED_NO_SIGNS, DIR_CROPPED_SIGNS, DIR_FRAMES_SIGNS, CROPPED_SIZE
+from data.config import DIR_CROPPED_NO_SIGNS, DIR_CROPPED_SIGNS, DIR_FRAMES_SIGNS, CROPPED_SIZE, DIR_FRAMES_POTENTIAL
 from data.window import Window, crop_image, save_image
 
 
@@ -140,33 +140,8 @@ def check_classification():
     os.makedirs(DIR_CROPPED_NO_SIGNS, exist_ok=True)
     os.makedirs(DIR_FRAMES_SIGNS, exist_ok=True)
     window = Window("P: No Sign   O: Has Sign   L: Maybe not   K: Maybe has")
-    tf.reset_default_graph()
-    #Checking cropped signs
-    print("Checking cropped signs")
-    def check_signs():
-        for name, pred in evaluate_files(IMAGES_WITH_SIGNS_PATH, 3, 3):
-            if np.max(pred) < 0.6:
-                print(name, 'is suspicious')
-                yield None, name
-    def remove_image(w, i, name):
-        os.remove(name)
-    window.iterate2(check_signs(), { 
-        pygame.K_o: lambda a, b, c: None,
-        pygame.K_p: remove_image,
-        pygame.K_l: remove_image,
-        pygame.K_k: lambda a, b, c: None
-    })
-    tf.reset_default_graph()
-    #Checking cropped no signs
-    print("Checking cropped no signs")
-    for name, pred in evaluate_files(IMAGES_WITHOUT_SIGNS_CROPPED_PATH, 3, 3):
-        if np.max(pred) < 0.4:
-            os.remove(name)
-    # Check normal none
-    tf.reset_default_graph()
-    print("Checking no signs classification")
-    def check_no_signs():
-        for name, pred in evaluate_files(IMAGES_WITHOUT_SIGNS_PATH):
+    def yield_signs_in_folder(folder, x=7, y=5):
+        for name, pred in evaluate_files(folder, x, y):
             if np.max(pred) > 0.6:
                 print(name, 'is suspicious')
                 image = pygame.image.load(name)
@@ -184,9 +159,43 @@ def check_classification():
     def crop_sign(w, image, name):
         save_image(image, DIR_CROPPED_SIGNS)
         has_sign(w, image, name)
+    #Checking cropped no signs
+    tf.reset_default_graph()
+    print("Checking cropped no signs")
+    for name, pred in evaluate_files(IMAGES_WITHOUT_SIGNS_CROPPED_PATH, 3, 3):
+        if np.max(pred) < 0.4:
+            os.remove(name)
+    #Checking potential frames
+    tf.reset_default_graph()
+    print("Checking potential frames")
+    window.iterate2(yield_signs_in_folder(os.path.join(DIR_FRAMES_POTENTIAL, "*.png"), 8, 6), {
+        pygame.K_o: crop_sign,
+        pygame.K_k: has_sign,
+        pygame.K_p: lambda a, b, c: None,
+        pygame.K_l: lambda a, b, c: None
+    })
+    #Checking cropped signs
+    tf.reset_default_graph()
+    print("Checking cropped signs")
+    def check_signs():
+        for name, pred in evaluate_files(IMAGES_WITH_SIGNS_PATH, 3, 3):
+            if np.max(pred) < 0.6:
+                print(name, 'is suspicious')
+                yield None, name
+    def remove_image(w, i, name):
+        os.remove(name)
+    window.iterate2(check_signs(), {
+        pygame.K_o: lambda a, b, c: None,
+        pygame.K_p: remove_image,
+        pygame.K_l: remove_image,
+        pygame.K_k: lambda a, b, c: None
+    })
+    # Check none frames
+    tf.reset_default_graph()
+    print("Checking no signs classification")
     def no_sign(w, image, n):
         save_image(image, DIR_CROPPED_NO_SIGNS)
-    window.iterate2(check_no_signs(), {
+    window.iterate2(yield_signs_in_folder(IMAGES_WITHOUT_SIGNS_PATH), {
         pygame.K_o: crop_sign,
         pygame.K_k: has_sign,
         pygame.K_p: no_sign,
