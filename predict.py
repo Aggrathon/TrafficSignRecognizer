@@ -23,6 +23,9 @@ class PredictionStats():
         wrong = float(self.false_negative+self.false_positive)
         return right / (right+wrong)
 
+    def get_amount(self):
+        return self.true_negative + self.true_positive + self.false_negative + self.false_positive
+
     def add_prediction(self, pred, label):
         if label < 0.5:
             if pred < 0.5:
@@ -75,9 +78,9 @@ def evaluate():
     tf.train.start_queue_runners(sess, coord)
     try:
         while True:
-            pred, logits, act = sess.run([nn.predictions['predictions'], nn.predictions['logits'], label_dict['labels']])
+            pred, act = sess.run([nn.predictions['predictions'], label_dict['labels']])
             stats.add_predictions(pred, act)
-            print('Prediction:\t%.2f\t%.2f'%(pred, logits))
+            print('Predictions: %00000d, Accuracy: %.4f'%(stats.get_amount(), stats.get_accuracy()))
     except KeyboardInterrupt:
         pass
     finally:

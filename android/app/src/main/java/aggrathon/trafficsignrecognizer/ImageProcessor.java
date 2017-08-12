@@ -18,7 +18,7 @@ import java.util.concurrent.TimeUnit;
 public class ImageProcessor {
 
 	protected static final String MODEL_ASSET_PATH = "model.pb";
-	protected static final int NUM_RECOGNITION_SAMPLES_X = 7;
+	protected static final int NUM_RECOGNITION_SAMPLES_X = 5;
 	protected static final int NUM_RECOGNITION_SAMPLES_Y = 5;
 	protected static final String INPUT_TENSOR_NAME = "input:0";
 	protected static final String OUTPUT_TENSOR_NAME = "predictions:0";
@@ -61,16 +61,12 @@ public class ImageProcessor {
 	}
 
 
-	public Bitmap process(byte[] img) {
-		startMillis = System.currentTimeMillis();
-		Bitmap bmp = null;
+	public Bitmap process(Bitmap bmp) {
 		if(checkCancel(bmp, false))
 			return null;
 		ready = false;
 		try {
 			//Decode Image
-			bmp = BitmapFactory.decodeByteArray(img, 0, img.length);
-			img = null;
 			int scaleY = 240;
 			int scaleX = (int)((float)bmp.getWidth()/bmp.getHeight()*240);
 			Bitmap bmp2 = Bitmap.createScaledBitmap(bmp, scaleX, scaleY, true);
@@ -114,14 +110,14 @@ public class ImageProcessor {
 			int scaledCropSize = 60*bmp.getHeight()/240;
 			for (int i = 0; i < output.length; i++) {
 				if (output[i] > 0.8f) {
-					int x = getCropX(bmp, scaledCropSize, i/NUM_RECOGNITION_SAMPLES_Y)-scaledCropSize/6;
-					int y = getCropX(bmp, scaledCropSize, i%NUM_RECOGNITION_SAMPLES_Y)-scaledCropSize/6;
+					int x = getCropX(bmp, scaledCropSize, i/NUM_RECOGNITION_SAMPLES_Y)-scaledCropSize/8;
+					int y = getCropX(bmp, scaledCropSize, i%NUM_RECOGNITION_SAMPLES_Y)-scaledCropSize/8;
 					if (minX == -1000 || x < minX)
 						minX = x;
 					if (minY == -1000 || y < minY)
 						minY = y;
-					x += scaledCropSize+scaledCropSize/3;
-					y += scaledCropSize+scaledCropSize/3;
+					x += scaledCropSize+scaledCropSize/4;
+					y += scaledCropSize+scaledCropSize/4;
 					if (maxX == -1000 || x > maxX)
 						maxX = x;
 					if (maxY == -1000 || y > maxY)

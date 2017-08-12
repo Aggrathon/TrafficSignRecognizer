@@ -81,7 +81,7 @@ def input_fn():
     """
         Creates input dictionaries for the estimator
     """
-    num_signs = 6
+    num_signs = 4
     num_none = 12
     num_none_diff = 2
     with tf.variable_scope('training_input'):

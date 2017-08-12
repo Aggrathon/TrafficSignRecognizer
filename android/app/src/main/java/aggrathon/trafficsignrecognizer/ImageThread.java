@@ -3,6 +3,7 @@ package aggrathon.trafficsignrecognizer;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.ImageFormat;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
@@ -30,8 +31,6 @@ public class ImageThread {
 	private boolean shouldStop;
 
 	private String cameraId;
-	private SurfaceHolder liveSurfaceHolder;
-	private Surface liveSurface;
 	private MainActivity activity;
 	private ImageProcessor processor;
 	private CameraManager manager;
@@ -46,9 +45,8 @@ public class ImageThread {
 	private int cameraSensorOrientation;
 
 
-	public ImageThread(SurfaceHolder liveView, MainActivity activity) {
+	public ImageThread(MainActivity activity) {
 		shouldStop = false;
-		liveSurfaceHolder = liveView;
 		this.activity = activity;
 		processor = new ImageProcessor();
 		manager = (CameraManager) activity.getSystemService(Context.CAMERA_SERVICE);
@@ -160,28 +158,17 @@ public class ImageThread {
 			}
 		});
 		final CameraStateCallback cb = new CameraStateCallback(this);
-		liveSurfaceHolder.addCallback(new SurfaceHolder.Callback() {
-			@Override
-			public void surfaceCreated(SurfaceHolder surfaceHolder) {
-				liveSurface = liveSurfaceHolder.getSurface();
-				if (cameraId == null || manager == null) {
-					cameraDisconnect("Camera not setup", true);
-					return;
-				}
-				try {
-					manager.openCamera(cameraId, cb, handler1);
-				} catch (SecurityException e) {
-					cameraDisconnect("Access to the camera not granted", true);
-				} catch (CameraAccessException e) {
-					cameraDisconnectAccessException();
-				}
-			}
-			@Override
-			public void surfaceChanged(SurfaceHolder surfaceHolder, int i, int i1, int i2) { }
-			@Override
-			public void surfaceDestroyed(SurfaceHolder surfaceHolder) { }
-		});
-		liveSurfaceHolder.setFixedSize(captureSize.getWidth(), captureSize.getHeight());
+		if (cameraId == null || manager == null) {
+			cameraDisconnect("Camera not setup", true);
+			return;
+		}
+		try {
+			manager.openCamera(cameraId, cb, handler1);
+		} catch (SecurityException e) {
+			cameraDisconnect("Access to the camera not granted", true);
+		} catch (CameraAccessException e) {
+			cameraDisconnectAccessException();
+		}
 	}
 
 	/**
@@ -207,18 +194,14 @@ public class ImageThread {
 	 * @return The most optimal size (null if no sizes available at all)
 	 */
 	protected Size getCorrectSize(CameraCharacteristics cc) {
-		int targetWidth = 320*4;
-		int targetHeight = 240*4;
-		int targetSize = targetHeight*targetWidth;
+		int targetSize = 240*5;
 		Size current = null;
 		StreamConfigurationMap scm = cc.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
 		for (Size s : scm.getOutputSizes(ImageReader.class)) {
 			if (current == null)
 				current = s;
 			else {
-				int cS = current.getHeight()*current.getWidth() - targetSize;
-				int sS = s.getHeight()*s.getWidth() - targetSize;
-				if(Math.abs(cS) > Math.abs(sS)) {
+				if(targetSize < s.getHeight() && targetSize < s.getWidth() && current.getWidth()*current.getHeight() > s.getWidth()*s.getHeight()) {
 					current = s;
 				}
 			}
@@ -261,7 +244,6 @@ public class ImageThread {
 				CaptureRequest.Builder builder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_RECORD);
 				imageThread.imageReader =  ImageReader.newInstance(imageThread.captureSize.getWidth(), imageThread.captureSize.getHeight(), ImageFormat.JPEG, 2);
 				builder.addTarget(imageThread.imageReader.getSurface());
-				builder.addTarget(imageThread.liveSurface);
 				builder.set(CaptureRequest.CONTROL_MODE, CaptureRequest.CONTROL_MODE_AUTO); //all auto
 				builder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE); //Auto focus on
 				builder.set(CaptureRequest.FLASH_MODE, CaptureRequest.FLASH_MODE_OFF); //Flash off
@@ -271,7 +253,7 @@ public class ImageThread {
 				builder.set(CaptureRequest.JPEG_QUALITY, (byte)95);
 				imageThread.captureRequest = builder.build();
 				cameraDevice.createCaptureSession(
-					Arrays.asList(imageThread.imageReader.getSurface(), imageThread.liveSurface),
+					Arrays.asList(imageThread.imageReader.getSurface()),
 					new CameraSessionCallback(imageThread),
 					imageThread.handler1);
 			}
@@ -313,6 +295,8 @@ public class ImageThread {
 		ImageThread imageThread;
 		byte[] bufferImage;
 		Runnable process;
+		long lastProcessed;
+		float normalizedDelta;
 
 		public CameraSessionCallback(ImageThread imgth) {
 			imageThread = imgth;
@@ -324,9 +308,20 @@ public class ImageThread {
 						return;
 					byte[] img = csc.bufferImage;
 					csc.bufferImage = null;
-					Bitmap bmp = imageThread.processor.process(img);
-					if (bmp != null)
-						imageThread.activity.setSignImage(bmp);
+					Bitmap bmp = BitmapFactory.decodeByteArray(img, 0, img.length);
+					int size = Math.min(bmp.getWidth(), bmp.getHeight())*8/10;
+					bmp = Bitmap.createBitmap(bmp, bmp.getWidth()-size, 0, size, size);
+					if (imageThread.activity.isReadyForLiveFrame())
+						imageThread.activity.setLiveImage(bmp, !imageThread.processor.checkReady());
+					if (imageThread.processor.checkReady()) {
+						bmp = imageThread.processor.process(bmp);
+						long last = System.currentTimeMillis();
+						float delta = 1f/((float)(last-lastProcessed)*0.001f);
+						lastProcessed = last;
+						normalizedDelta = normalizedDelta*0.6f+delta*0.4f;
+						if (bmp != null)
+							imageThread.activity.setSignImage(bmp, normalizedDelta);
+					}
 				}
 			};
 		}
@@ -338,6 +333,7 @@ public class ImageThread {
 				imageThread.stop();
 				return;
 			}
+			lastProcessed = System.currentTimeMillis();
 			try {
 				imageThread.imageReader.setOnImageAvailableListener(new ImageReader.OnImageAvailableListener() {
 					@Override
@@ -345,16 +341,18 @@ public class ImageThread {
 						if(imageThread.shouldStop)
 							return;
 						Image img = imageReader.acquireLatestImage();
-						if (imageThread.processor.checkReady() && img != null) {
+						if (img == null)
+							return;
+						if (imageThread.processor.checkReady() || imageThread.activity.isReadyForLiveFrame()) {
 							ByteBuffer buf = img.getPlanes()[0].getBuffer();
 							byte[] bb = new byte[buf.remaining()];
 							buf.get(bb);
-							img.close();
 							bufferImage = bb;
 							if (imageThread.shouldStop)
 								return;
 							imageThread.handler2.post(process);
 						}
+						img.close();
 					}
 				}, imageThread.handler1);
 				imageThread.cameraSession.setRepeatingRequest(imageThread.captureRequest, null, imageThread.handler1);
